@@ -3,13 +3,22 @@ package com.meteology.radarnavi;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.StrictMode;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import com.meteology.radarnavi.R;
 
 import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
@@ -19,13 +28,16 @@ import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.GroundOverlayOptions;
 import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
 import com.baidu.mapapi.map.MyLocationConfiguration;
 import com.baidu.mapapi.map.MyLocationData;
+import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.MyLocationConfiguration.LocationMode;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.model.LatLngBounds;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -37,6 +49,7 @@ import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.ftp.FTPSClient;
 
 
+@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class MainActivity extends Activity {
 	
     /**
@@ -86,12 +99,34 @@ public class MainActivity extends Activity {
 		
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
-        MapStatusUpdate msu = MapStatusUpdateFactory.zoomTo(15.0f);
-        mBaiduMap.setMapStatus(msu);
+        
+	    // add ground overlay
+        BitmapDescriptor bdGround = BitmapDescriptorFactory
+    			.fromResource(R.drawable.ground_overlay);
+	    LatLng southwest = new LatLng(38.92235, 115.380338);
+	    LatLng northeast = new LatLng(40.947246, 117.414977);
+	    LatLngBounds bounds = new LatLngBounds.Builder().include(northeast)
+	    		.include(southwest).build();
+	    OverlayOptions ooGround = new GroundOverlayOptions()
+	    		.positionFromBounds(bounds).image(bdGround).transparency(0.8f);
+	    mBaiduMap.addOverlay(ooGround);
+	    MapStatusUpdate u = MapStatusUpdateFactory
+	    		.newLatLng(bounds.getCenter());
+	    mBaiduMap.setMapStatus(u);
+        
+        mBaiduMap.setMyLocationEnabled(true);
+        //MapStatusUpdate msu = MapStatusUpdateFactory.zoomTo(15.0f);
+        //mBaiduMap.setMapStatus(msu);
+        MyLocationConfiguration config = new MyLocationConfiguration(mCurrentMode, true, null);
+        mBaiduMap.setMyLocationConfigeration(config);
         initLocation();
-        LatLng ll = new LatLng(mCurrentLantitude, mCurrentLongitude);
-        MapStatusUpdate u = MapStatusUpdateFactory.newLatLng(ll);
-        mBaiduMap.animateMapStatus(u);
+        //Log.e("mylog", "test log");
+        //LatLng ll = new LatLng(mCurrentLantitude, mCurrentLongitude);
+        //MapStatusUpdate u = MapStatusUpdateFactory.newLatLng(ll);
+        //mBaiduMap.animateMapStatus(u);
+        
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();   
+        StrictMode.setThreadPolicy(policy);
 	}
 	
 	/**
@@ -108,9 +143,11 @@ public class MainActivity extends Activity {
 	    LocationClientOption option = new LocationClientOption();
 	    option.setOpenGps(true);// 打开gps
 	    option.setCoorType("bd09ll"); // 设置坐标类型
-	    option.setAddrType("all");
+	    //option.setAddrType("all");
 	    option.setScanSpan(1000);
 	    mLocationClient.setLocOption(option);
+	    mLocationClient.start();
+	    //mLocationClient.requestLocation();
 	}
 	
     @Override
@@ -127,29 +164,43 @@ public class MainActivity extends Activity {
         	FTPClient ftp = new FTPClient();
         	try
         	{
-        		ftp.connect("10.10.10.10");
-	        	ftp.login("tmp", "tmp");
-	        	ftp.changeWorkingDirectory("");
+        		
+        		String local = Environment.getExternalStorageDirectory().getAbsolutePath() + "/dn.sh";
+        		String remote = "test.sh";
+        		Log.e("mylog", "before ftp connect");
+        		ftp.connect("192.168.0.100");
+        		Log.e("mylog", "connected to server");
+	        	ftp.login("rtr", "Gtrt*62??");
+	        	//ftp.changeWorkingDirectory("");
 	        	ftp.setFileType(FTP.BINARY_FILE_TYPE);
-	        	BufferedInputStream buffIn=null;
-	        	File file = null;
-	        	buffIn=new BufferedInputStream(new FileInputStream(file));
+	        	OutputStream output;
+	        	output=new FileOutputStream(local);
 	        	ftp.enterLocalPassiveMode();
-	        	ftp.storeFile("test.txt", buffIn);
-	        	buffIn.close();
+	        	Log.e("mylog", "before file transfer");
+	        	ftp.retrieveFile(remote, output);
+	        	output.close();
+	        	Log.e("mylog", "before ftp logout");
 	        	ftp.logout();
 	        	ftp.disconnect();
         	}
-        	catch (IOException e)
+        	/*catch (IOException e)
         	{
-                try
-                {
-                    ftp.disconnect();
-                }
-                catch (IOException f)
-                {
-                    // do nothing
-                }
+        		Log.e("mylog", "caught exception");
+        		if (ftp.isConnected())
+        		{
+	                try
+	                {
+	                    ftp.disconnect();
+	                }
+	                catch (IOException f)
+	                {
+	                    // do nothing
+	                }
+        		}
+        	}*/
+        	catch (Exception e)
+        	{
+        		Log.e("mylog", "caught exception " + e.getMessage() + " " + ftp.getReplyCode());
         	}
         	findViewById(R.id.marker_progress).setVisibility(View.GONE);
             return true;
@@ -160,14 +211,14 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 	
-    @Override
+    /*@Override
     protected void onStart() {
         // 开启图层定位
         // 这段代码非常重要
         mBaiduMap.setMyLocationEnabled(true);
         if (!mLocationClient.isStarted())
             mLocationClient.start();
-        mLocationClient.requestLocation();
+        //mLocationClient.requestLocation();
         super.onStart();
     }
 	
@@ -177,13 +228,16 @@ public class MainActivity extends Activity {
         mBaiduMap.setMyLocationEnabled(false);
         mLocationClient.stop();
         super.onStop();
-    }
+    }*/
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mLocationClient.stop();
+        mBaiduMap.setMyLocationEnabled(false);
         //在activity执行onDestroy时执行mMapView.onDestroy()，实现地图生命周期管理
         mMapView.onDestroy();
+        mMapView = null;
     }
 
     @Override
@@ -203,6 +257,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void onReceiveLocation(BDLocation location) {
+        	//Log.e("mylog", "in onReceiveLocation");
             // map view 销毁后不在处理新接收的位置
             if (location == null || mMapView == null)
                 return;
@@ -210,24 +265,25 @@ public class MainActivity extends Activity {
             MyLocationData locData = new MyLocationData.Builder().accuracy(location.getRadius())
                     // 此处设置开发者获取到的方向信息，顺时针0-360
                     .direction(100).latitude(location.getLatitude()).longitude(location.getLongitude()).build();
-            mCurrentAccracy = location.getRadius();
+            //mCurrentAccracy = location.getRadius();
             // 设置定位数据
             mBaiduMap.setMyLocationData(locData);
-            mCurrentLantitude = location.getLatitude();
-            mCurrentLongitude = location.getLongitude();
+            //mCurrentLantitude = location.getLatitude();
+            //mCurrentLongitude = location.getLongitude();
             // 设置自定义图标
-            BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.drawable.navi_map_gps_locked);
+            //BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.drawable.navi_map_gps_locked);
             //BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.mipmap.navi_map_gps_locked);
-            MyLocationConfiguration config = new MyLocationConfiguration(mCurrentMode, true, mCurrentMarker);
+            //MyLocationConfiguration config = new MyLocationConfiguration(mCurrentMode, true, mCurrentMarker);
+            MyLocationConfiguration config = new MyLocationConfiguration(mCurrentMode, true, null);
             mBaiduMap.setMyLocationConfigeration(config);
             //Log.e("mylog", "address:"+location.getAddrStr());
             // 第一次定位时，将地图位置移动到当前位置
-            if (isFristLocation) {
+            /*if (isFristLocation) {
                 isFristLocation = false;
                 LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
                 MapStatusUpdate u = MapStatusUpdateFactory.newLatLng(ll);
                 mBaiduMap.animateMapStatus(u);
-            }
+            }*/
 
         }
 
