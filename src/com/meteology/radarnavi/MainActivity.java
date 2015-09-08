@@ -18,6 +18,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.Toast;
+
 import com.meteology.radarnavi.R;
 
 import com.baidu.location.BDLocation;
@@ -26,18 +30,32 @@ import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
+import com.baidu.mapapi.map.BaiduMap.OnMarkerDragListener;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
 import com.baidu.mapapi.map.GroundOverlayOptions;
 import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
+import com.baidu.mapapi.map.Marker;
+import com.baidu.mapapi.map.MarkerOptions;
 import com.baidu.mapapi.map.MyLocationConfiguration;
 import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.MyLocationConfiguration.LocationMode;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.model.LatLngBounds;
+import com.baidu.mapapi.overlayutil.DrivingRouteOverlay;
+import com.baidu.mapapi.overlayutil.OverlayManager;
+import com.baidu.mapapi.search.core.RouteLine;
+import com.baidu.mapapi.search.core.SearchResult;
+import com.baidu.mapapi.search.route.DrivingRoutePlanOption;
+import com.baidu.mapapi.search.route.DrivingRouteResult;
+import com.baidu.mapapi.search.route.OnGetRoutePlanResultListener;
+import com.baidu.mapapi.search.route.PlanNode;
+import com.baidu.mapapi.search.route.RoutePlanSearch;
+import com.baidu.mapapi.search.route.TransitRouteResult;
+import com.baidu.mapapi.search.route.WalkingRouteResult;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -50,7 +68,7 @@ import org.apache.commons.net.ftp.FTPSClient;
 
 
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnGetRoutePlanResultListener {
 	
     /**
      * 地图控件
@@ -85,6 +103,11 @@ public class MainActivity extends Activity {
      * 当前的精度
      */
     private float mCurrentAccracy;
+    
+    RoutePlanSearch mSearch = null;
+    Marker mMarkerDest/*,mMarkerCand*/;
+    RouteLine route = null;
+    OverlayManager routeOverlay = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -96,9 +119,22 @@ public class MainActivity extends Activity {
         
 		setContentView(R.layout.activity_main);
 		findViewById(R.id.marker_progress).setVisibility(View.GONE);
+		findViewById(R.id.btn_navi).setVisibility(View.GONE);
 		
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
+        
+        // add dest loc markers        
+        BitmapDescriptor bdDest = BitmapDescriptorFactory.fromResource(R.drawable.icon_geo);
+        //BitmapDescriptor bdCand = BitmapDescriptorFactory.fromResource(R.drawable.icon_geo);
+        
+        LatLng llDest = new LatLng(39.963175, 116.400244);
+        //LatLng llCand = new LatLng(39.942821, 116.369199);
+        
+        OverlayOptions ooDest = new MarkerOptions().position(llDest).icon(bdDest).zIndex(5).draggable(true);
+        mMarkerDest = (Marker)(mBaiduMap.addOverlay(ooDest));
+        //OverlayOptions ooCand = new MarkerOptions().position(llCand).icon(bdCand).zIndex(5);
+        //mMarkerCand = (Marker)(mBaiduMap.addOverlay(ooCand));
         
 	    // add ground overlay
         BitmapDescriptor bdGround = BitmapDescriptorFactory
@@ -113,6 +149,21 @@ public class MainActivity extends Activity {
 	    MapStatusUpdate u = MapStatusUpdateFactory
 	    		.newLatLng(bounds.getCenter());
 	    mBaiduMap.setMapStatus(u);
+	    
+	    mBaiduMap.setOnMarkerDragListener(new OnMarkerDragListener() {
+			public void onMarkerDrag(Marker marker) {
+			}
+
+			public void onMarkerDragEnd(Marker marker) {
+				Toast.makeText(MainActivity.this,
+						"拖拽结束，新位置：" + marker.getPosition().latitude + ", "
+								+ marker.getPosition().longitude,
+						Toast.LENGTH_LONG).show();
+			}
+
+			public void onMarkerDragStart(Marker marker) {
+			}
+	    });
         
         mBaiduMap.setMyLocationEnabled(true);
         //MapStatusUpdate msu = MapStatusUpdateFactory.zoomTo(15.0f);
@@ -124,6 +175,32 @@ public class MainActivity extends Activity {
         //LatLng ll = new LatLng(mCurrentLantitude, mCurrentLongitude);
         //MapStatusUpdate u = MapStatusUpdateFactory.newLatLng(ll);
         //mBaiduMap.animateMapStatus(u);
+        
+		mSearch = RoutePlanSearch.newInstance();
+		mSearch.setOnGetRoutePlanResultListener(this);
+        
+        Button reqPlanBtn = (Button)findViewById(R.id.btn_plan);
+        OnClickListener btnPlanClickListener = new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				PlanNode stNode = PlanNode.withLocation(new LatLng(mCurrentLantitude, mCurrentLongitude));
+        		PlanNode enNode = PlanNode.withLocation(mMarkerDest.getPosition());
+        		mSearch.drivingSearch((new DrivingRoutePlanOption()).from(stNode).to(enNode));
+			}
+        };
+        reqPlanBtn.setOnClickListener(btnPlanClickListener);
+        
+        Button reqNaviBtn = (Button)findViewById(R.id.btn_navi);
+        OnClickListener btnNaviClickLIstener = new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				
+			}        	
+        };
         
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();   
         StrictMode.setThreadPolicy(policy);
@@ -173,19 +250,31 @@ public class MainActivity extends Activity {
 	        	ftp.login("rtr", "Gtrt*62??");
 	        	//ftp.changeWorkingDirectory("");
 	        	ftp.setFileType(FTP.BINARY_FILE_TYPE);
-	        	OutputStream output;
-	        	output=new FileOutputStream(local);
 	        	ftp.enterLocalPassiveMode();
 	        	Log.e("mylog", "before file transfer");
-	        	ftp.retrieveFile(remote, output);
-	        	output.close();
+	        	File local_file = new File(local);
+	        	if (local_file.exists())
+	        	{
+	        		InputStream input;
+	        		input=new FileInputStream(local);
+	        		ftp.storeFile(remote, input);
+	        		input.close();
+	        	}
+	        	else
+	        	{
+		        	OutputStream output;
+		        	output=new FileOutputStream(local);
+		        	ftp.retrieveFile(remote, output);
+		        	output.close();
+	        	}
 	        	Log.e("mylog", "before ftp logout");
 	        	ftp.logout();
 	        	ftp.disconnect();
         	}
-        	/*catch (IOException e)
-        	{
-        		Log.e("mylog", "caught exception");
+        	catch (Exception e)
+        	{        		
+        		Log.e("mylog", "caught exception " + e.getMessage() + " " + ftp.getReplyCode());
+        		Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
         		if (ftp.isConnected())
         		{
 	                try
@@ -197,10 +286,6 @@ public class MainActivity extends Activity {
 	                    // do nothing
 	                }
         		}
-        	}*/
-        	catch (Exception e)
-        	{
-        		Log.e("mylog", "caught exception " + e.getMessage() + " " + ftp.getReplyCode());
         	}
         	findViewById(R.id.marker_progress).setVisibility(View.GONE);
             return true;
@@ -268,8 +353,9 @@ public class MainActivity extends Activity {
             //mCurrentAccracy = location.getRadius();
             // 设置定位数据
             mBaiduMap.setMyLocationData(locData);
-            //mCurrentLantitude = location.getLatitude();
-            //mCurrentLongitude = location.getLongitude();
+            mCurrentLantitude = location.getLatitude();
+            mCurrentLongitude = location.getLongitude();
+            
             // 设置自定义图标
             //BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.drawable.navi_map_gps_locked);
             //BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.mipmap.navi_map_gps_locked);
@@ -287,6 +373,68 @@ public class MainActivity extends Activity {
 
         }
 
+    }
+
+	@Override
+	public void onGetDrivingRouteResult(DrivingRouteResult result) {
+		// TODO Auto-generated method stub
+        if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
+            Toast.makeText(MainActivity.this, "抱歉，未找到结果", Toast.LENGTH_SHORT).show();
+        }
+        if (result.error == SearchResult.ERRORNO.AMBIGUOUS_ROURE_ADDR) {
+            //起终点或途经点地址有岐义，通过以下接口获取建议查询信息
+            //result.getSuggestAddrInfo()
+            return;
+        }
+        if (result.error == SearchResult.ERRORNO.NO_ERROR) {
+            /*nodeIndex = -1;
+            mBtnPre.setVisibility(View.VISIBLE);
+            mBtnNext.setVisibility(View.VISIBLE);*/
+            route = result.getRouteLines().get(0);
+            DrivingRouteOverlay overlay = new MyDrivingRouteOverlay(mBaiduMap);
+            routeOverlay = overlay;
+            mBaiduMap.setOnMarkerClickListener(overlay);
+            overlay.setData(result.getRouteLines().get(0));
+            overlay.addToMap();
+            overlay.zoomToSpan();
+        }
+        findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
+	}
+
+	@Override
+	public void onGetTransitRouteResult(TransitRouteResult arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onGetWalkingRouteResult(WalkingRouteResult arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+    //定制RouteOverly
+    private class MyDrivingRouteOverlay extends DrivingRouteOverlay {
+
+        public MyDrivingRouteOverlay(BaiduMap baiduMap) {
+            super(baiduMap);
+        }
+
+        @Override
+        public BitmapDescriptor getStartMarker() {
+            //if (useDefaultIcon) {
+                return BitmapDescriptorFactory.fromResource(R.drawable.icon_st);
+            //}
+            //return null;
+        }
+
+        @Override
+        public BitmapDescriptor getTerminalMarker() {
+            //if (useDefaultIcon) {
+                return BitmapDescriptorFactory.fromResource(R.drawable.icon_en);
+            //}
+            //return null;
+        }
     }
 }
 
