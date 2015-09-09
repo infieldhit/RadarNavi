@@ -7,9 +7,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -56,6 +59,10 @@ import com.baidu.mapapi.search.route.PlanNode;
 import com.baidu.mapapi.search.route.RoutePlanSearch;
 import com.baidu.mapapi.search.route.TransitRouteResult;
 import com.baidu.mapapi.search.route.WalkingRouteResult;
+import com.baidu.navisdk.adapter.BNRoutePlanNode;
+import com.baidu.navisdk.adapter.BaiduNaviManager;
+import com.baidu.navisdk.adapter.BaiduNaviManager.NaviInitListener;
+import com.baidu.navisdk.adapter.BaiduNaviManager.RoutePlanListener;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -69,6 +76,10 @@ import org.apache.commons.net.ftp.FTPSClient;
 
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class MainActivity extends Activity implements OnGetRoutePlanResultListener {
+	
+	public static final String TAG = "RadarNavi";
+	private static final String APP_FOLDER_NAME = "RadarNaviApp";
+	public static final String ROUTE_PLAN_NODE = "routePlanNode";
 	
     /**
      * 地图控件
@@ -93,7 +104,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
     /***
      * 是否是第一次定位
      */
-    private volatile boolean isFristLocation = true;
+    private volatile boolean isFirstLocation = true;
     /**
      * 最新一次的经纬度
      */
@@ -108,6 +119,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
     Marker mMarkerDest/*,mMarkerCand*/;
     RouteLine route = null;
     OverlayManager routeOverlay = null;
+    
+    private String mSDCardPath = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -198,9 +211,21 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				
+				BNRoutePlanNode stNode = new BNRoutePlanNode(mCurrentLantitude, mCurrentLongitude, "start", null);
+        		BNRoutePlanNode enNode = new BNRoutePlanNode(mMarkerDest.getPosition().latitude,mMarkerDest.getPosition().longitude,"end",null);
+        		List<BNRoutePlanNode> list = new ArrayList<BNRoutePlanNode>();
+    			list.add(stNode);
+    			list.add(enNode);
+    			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
+    					new DemoRoutePlanListener(stNode));
 			}        	
         };
+        reqNaviBtn.setOnClickListener(btnNaviClickLIstener);
+        
+        if (initDirs())
+        {
+        	initNavi();
+        }
         
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();   
         StrictMode.setThreadPolicy(policy);
@@ -364,8 +389,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             mBaiduMap.setMyLocationConfigeration(config);
             //Log.e("mylog", "address:"+location.getAddrStr());
             // 第一次定位时，将地图位置移动到当前位置
-            /*if (isFristLocation) {
-                isFristLocation = false;
+            /*if (isFirstLocation) {
+                isFirstLocation = false;
                 LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
                 MapStatusUpdate u = MapStatusUpdateFactory.newLatLng(ll);
                 mBaiduMap.animateMapStatus(u);
@@ -390,6 +415,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             /*nodeIndex = -1;
             mBtnPre.setVisibility(View.VISIBLE);
             mBtnNext.setVisibility(View.VISIBLE);*/
+        	findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
             route = result.getRouteLines().get(0);
             DrivingRouteOverlay overlay = new MyDrivingRouteOverlay(mBaiduMap);
             routeOverlay = overlay;
@@ -397,8 +423,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             overlay.setData(result.getRouteLines().get(0));
             overlay.addToMap();
             overlay.zoomToSpan();
-        }
-        findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
+        }        
 	}
 
 	@Override
@@ -436,6 +461,99 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             //return null;
         }
     }
+    
+	private boolean initDirs() {
+		mSDCardPath = getSdcardDir();
+		if (mSDCardPath == null) {
+			return false;
+		}
+		File f = new File(mSDCardPath, APP_FOLDER_NAME);
+		if (!f.exists()) {
+			try {
+				f.mkdir();
+			} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+		return true;
+	}
+
+	String authinfo = null;
+
+	private void initNavi() {
+		BaiduNaviManager.getInstance().setNativeLibraryPath(
+				mSDCardPath + "/BaiduNaviSDK_SO");
+		BaiduNaviManager.getInstance().init(this, mSDCardPath, APP_FOLDER_NAME,
+				new NaviInitListener() {
+					@Override
+					public void onAuthResult(int status, String msg) {
+						if (0 == status) {
+							authinfo = "key校验成功!";
+						} else {
+							authinfo = "key校验失败, " + msg;
+						}
+						MainActivity.this.runOnUiThread(new Runnable() {
+
+							@Override
+							public void run() {
+								Toast.makeText(MainActivity.this,
+										authinfo, Toast.LENGTH_LONG).show();
+							}
+						});
+
+					}
+
+					public void initSuccess() {
+						Toast.makeText(MainActivity.this, "百度导航引擎初始化成功",
+								Toast.LENGTH_SHORT).show();
+					}
+
+					public void initStart() {
+						Toast.makeText(MainActivity.this, "百度导航引擎初始化开始",
+								Toast.LENGTH_SHORT).show();
+					}
+
+					public void initFailed() {
+						Toast.makeText(MainActivity.this, "百度导航引擎初始化失败",
+								Toast.LENGTH_SHORT).show();
+					}
+				}, null /* mTTSCallback */);
+	}
+
+	private String getSdcardDir() {
+		if (Environment.getExternalStorageState().equalsIgnoreCase(
+				Environment.MEDIA_MOUNTED)) {
+			return Environment.getExternalStorageDirectory().toString();
+		}
+		return null;
+	}
+	
+	public class DemoRoutePlanListener implements RoutePlanListener {
+
+		private BNRoutePlanNode mBNRoutePlanNode = null;
+
+		public DemoRoutePlanListener(BNRoutePlanNode node) {
+			mBNRoutePlanNode = node;
+		}
+
+		@Override
+		public void onJumpToNavigator() {
+			Intent intent = new Intent(MainActivity.this,
+					NaviGuideActivity.class);
+			Bundle bundle = new Bundle();
+			bundle.putSerializable(ROUTE_PLAN_NODE,
+					(BNRoutePlanNode) mBNRoutePlanNode);
+			intent.putExtras(bundle);
+			startActivity(intent);
+		}
+
+		@Override
+		public void onRoutePlanFailed() {
+			// TODO Auto-generated method stub
+
+		}
+	}
 }
 
 
