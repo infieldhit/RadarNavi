@@ -59,7 +59,9 @@ import com.baidu.mapapi.search.route.PlanNode;
 import com.baidu.mapapi.search.route.RoutePlanSearch;
 import com.baidu.mapapi.search.route.TransitRouteResult;
 import com.baidu.mapapi.search.route.WalkingRouteResult;
+import com.baidu.navisdk.adapter.BNOuterTTSPlayerCallback;
 import com.baidu.navisdk.adapter.BNRoutePlanNode;
+import com.baidu.navisdk.adapter.BNRoutePlanNode.CoordinateType;
 import com.baidu.navisdk.adapter.BaiduNaviManager;
 import com.baidu.navisdk.adapter.BaiduNaviManager.NaviInitListener;
 import com.baidu.navisdk.adapter.BaiduNaviManager.RoutePlanListener;
@@ -131,8 +133,15 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         SDKInitializer.initialize(getApplicationContext());
         
 		setContentView(R.layout.activity_main);
+		
+        if (initDirs())
+        {
+        	initNavi();
+        }
+		
 		findViewById(R.id.marker_progress).setVisibility(View.GONE);
-		findViewById(R.id.btn_navi).setVisibility(View.GONE);
+		//findViewById(R.id.btn_navi).setVisibility(View.GONE);
+		findViewById(R.id.btn_plan).setVisibility(View.GONE);
 		
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
@@ -150,7 +159,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         //mMarkerCand = (Marker)(mBaiduMap.addOverlay(ooCand));
         
 	    // add ground overlay
-        BitmapDescriptor bdGround = BitmapDescriptorFactory
+        /*BitmapDescriptor bdGround = BitmapDescriptorFactory
     			.fromResource(R.drawable.ground_overlay);
 	    LatLng southwest = new LatLng(38.92235, 115.380338);
 	    LatLng northeast = new LatLng(40.947246, 117.414977);
@@ -159,9 +168,10 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	    OverlayOptions ooGround = new GroundOverlayOptions()
 	    		.positionFromBounds(bounds).image(bdGround).transparency(0.8f);
 	    mBaiduMap.addOverlay(ooGround);
+        
 	    MapStatusUpdate u = MapStatusUpdateFactory
 	    		.newLatLng(bounds.getCenter());
-	    mBaiduMap.setMapStatus(u);
+	    mBaiduMap.setMapStatus(u);*/
 	    
 	    mBaiduMap.setOnMarkerDragListener(new OnMarkerDragListener() {
 			public void onMarkerDrag(Marker marker) {
@@ -211,21 +221,23 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				BNRoutePlanNode stNode = new BNRoutePlanNode(mCurrentLantitude, mCurrentLongitude, "start", null);
-        		BNRoutePlanNode enNode = new BNRoutePlanNode(mMarkerDest.getPosition().latitude,mMarkerDest.getPosition().longitude,"end",null);
+				Log.e("mylog", "mCurrentLantitude="+mCurrentLantitude+" mCurrentLongtitude="+mCurrentLongitude);
+				Log.e("mylog", "mMarkerLan="+mMarkerDest.getPosition().latitude+" mMarkerLong="+mMarkerDest.getPosition().longitude);
+				BNRoutePlanNode stNode = new BNRoutePlanNode(mCurrentLongitude, mCurrentLantitude, "start", null,CoordinateType.GCJ02);
+        		BNRoutePlanNode enNode = new BNRoutePlanNode(mMarkerDest.getPosition().longitude,mMarkerDest.getPosition().latitude,"end",null,CoordinateType.GCJ02);
+				//BNRoutePlanNode stNode = new BNRoutePlanNode(116.201427, 23.050877, 
+			    //		"百度大厦", null, CoordinateType.GCJ02);
+				//BNRoutePlanNode enNode = new BNRoutePlanNode(116.397507, 23.798827, 
+			    //		"北京天安门", null, CoordinateType.GCJ02);
         		List<BNRoutePlanNode> list = new ArrayList<BNRoutePlanNode>();
     			list.add(stNode);
     			list.add(enNode);
+    			Log.e("mylog", "before entering navi activity");
     			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
     					new DemoRoutePlanListener(stNode));
 			}        	
         };
         reqNaviBtn.setOnClickListener(btnNaviClickLIstener);
-        
-        if (initDirs())
-        {
-        	initNavi();
-        }
         
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();   
         StrictMode.setThreadPolicy(policy);
@@ -244,7 +256,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	    // 设置定位的相关配置
 	    LocationClientOption option = new LocationClientOption();
 	    option.setOpenGps(true);// 打开gps
-	    option.setCoorType("bd09ll"); // 设置坐标类型
+	    option.setCoorType("gcj02"); // 设置坐标类型
 	    //option.setAddrType("all");
 	    option.setScanSpan(1000);
 	    mLocationClient.setLocOption(option);
@@ -416,6 +428,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             mBtnPre.setVisibility(View.VISIBLE);
             mBtnNext.setVisibility(View.VISIBLE);*/
         	findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
+        	findViewById(R.id.btn_plan).setVisibility(View.GONE);
             route = result.getRouteLines().get(0);
             DrivingRouteOverlay overlay = new MyDrivingRouteOverlay(mBaiduMap);
             routeOverlay = overlay;
@@ -539,6 +552,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 
 		@Override
 		public void onJumpToNavigator() {
+			Log.e("mylog", "try to enter guide act");
 			Intent intent = new Intent(MainActivity.this,
 					NaviGuideActivity.class);
 			Bundle bundle = new Bundle();
@@ -551,9 +565,66 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		@Override
 		public void onRoutePlanFailed() {
 			// TODO Auto-generated method stub
-
+			Log.e("mylog", "route plan failed");
 		}
 	}
+	
+private BNOuterTTSPlayerCallback mTTSCallback = new BNOuterTTSPlayerCallback() {
+		
+		@Override
+		public void stopTTS() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void resumeTTS() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void releaseTTSPlayer() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public int playTTSText(String speech, int bPreempt) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
+		@Override
+		public void phoneHangUp() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void phoneCalling() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void pauseTTS() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public void initTTSPlayer() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		@Override
+		public int getTTSState() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+	};
 }
 
 

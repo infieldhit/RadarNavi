@@ -7,5 +7,6 @@
     <string name="action_syncdata">Sync Radar Data</string>
     <string name="action_navi">navi</string>
     <string name="action_plan">plan</string>
+    <string name="title_navi_guide">navi guide</string>
 
 </resources>
