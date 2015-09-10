@@ -141,7 +141,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		
 		findViewById(R.id.marker_progress).setVisibility(View.GONE);
 		//findViewById(R.id.btn_navi).setVisibility(View.GONE);
-		findViewById(R.id.btn_plan).setVisibility(View.GONE);
+		//findViewById(R.id.btn_plan).setVisibility(View.GONE);
 		
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
@@ -159,19 +159,25 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         //mMarkerCand = (Marker)(mBaiduMap.addOverlay(ooCand));
         
 	    // add ground overlay
-        /*BitmapDescriptor bdGround = BitmapDescriptorFactory
-    			.fromResource(R.drawable.ground_overlay);
-	    LatLng southwest = new LatLng(38.92235, 115.380338);
-	    LatLng northeast = new LatLng(40.947246, 117.414977);
+        //BitmapDescriptor bdGround = BitmapDescriptorFactory
+    	//		.fromResource(R.drawable.ground_overlay);
+        BitmapDescriptor bdRadar = BitmapDescriptorFactory.fromPath(mSDCardPath+"/"+APP_FOLDER_NAME+"/radar.dat");
+	    //LatLng southwest = new LatLng(38.92235, 115.380338);
+	    //LatLng northeast = new LatLng(40.947246, 117.414977);
+        LatLng southwest = new LatLng(31.40404,110.6146);
+	    LatLng northeast = new LatLng(26.0789,117.0162);
 	    LatLngBounds bounds = new LatLngBounds.Builder().include(northeast)
 	    		.include(southwest).build();
 	    OverlayOptions ooGround = new GroundOverlayOptions()
-	    		.positionFromBounds(bounds).image(bdGround).transparency(0.8f);
+	    		.positionFromBounds(bounds).image(bdRadar).transparency(0.8f);
 	    mBaiduMap.addOverlay(ooGround);
         
+	    //MapStatusUpdate u = MapStatusUpdateFactory
+	    //		.newLatLng(bounds.getCenter());
 	    MapStatusUpdate u = MapStatusUpdateFactory
-	    		.newLatLng(bounds.getCenter());
-	    mBaiduMap.setMapStatus(u);*/
+	    		.newLatLng(new LatLng(29.293,113.088));
+	    
+	    mBaiduMap.setMapStatus(u);
 	    
 	    mBaiduMap.setOnMarkerDragListener(new OnMarkerDragListener() {
 			public void onMarkerDrag(Marker marker) {
@@ -202,8 +208,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		mSearch = RoutePlanSearch.newInstance();
 		mSearch.setOnGetRoutePlanResultListener(this);
         
-        Button reqPlanBtn = (Button)findViewById(R.id.btn_plan);
-        OnClickListener btnPlanClickListener = new OnClickListener() {
+        final Button reqPlanBtn = (Button)findViewById(R.id.btn_plan);
+        final OnClickListener btnPlanClickListener = new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
@@ -215,29 +221,22 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         };
         reqPlanBtn.setOnClickListener(btnPlanClickListener);
         
-        Button reqNaviBtn = (Button)findViewById(R.id.btn_navi);
-        OnClickListener btnNaviClickLIstener = new OnClickListener() {
+        Button reqResetBtn = (Button)findViewById(R.id.btn_rst);
+        OnClickListener btnResetClickListener = new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				Log.e("mylog", "mCurrentLantitude="+mCurrentLantitude+" mCurrentLongtitude="+mCurrentLongitude);
-				Log.e("mylog", "mMarkerLan="+mMarkerDest.getPosition().latitude+" mMarkerLong="+mMarkerDest.getPosition().longitude);
-				BNRoutePlanNode stNode = new BNRoutePlanNode(mCurrentLongitude, mCurrentLantitude, "start", null,CoordinateType.GCJ02);
-        		BNRoutePlanNode enNode = new BNRoutePlanNode(mMarkerDest.getPosition().longitude,mMarkerDest.getPosition().latitude,"end",null,CoordinateType.GCJ02);
-				//BNRoutePlanNode stNode = new BNRoutePlanNode(116.201427, 23.050877, 
-			    //		"百度大厦", null, CoordinateType.GCJ02);
-				//BNRoutePlanNode enNode = new BNRoutePlanNode(116.397507, 23.798827, 
-			    //		"北京天安门", null, CoordinateType.GCJ02);
-        		List<BNRoutePlanNode> list = new ArrayList<BNRoutePlanNode>();
-    			list.add(stNode);
-    			list.add(enNode);
-    			Log.e("mylog", "before entering navi activity");
-    			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
-    					new DemoRoutePlanListener(stNode));
-			}        	
+				reqPlanBtn.setText("plan");
+				reqPlanBtn.setOnClickListener(btnPlanClickListener);
+				routeOverlay.removeFromMap();
+			}
         };
-        reqNaviBtn.setOnClickListener(btnNaviClickLIstener);
+        reqResetBtn.setOnClickListener(btnResetClickListener);
+        
+        //Button reqNaviBtn = (Button)findViewById(R.id.btn_navi);
+        
+        //reqNaviBtn.setOnClickListener(btnNaviClickLIstener);
         
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();   
         StrictMode.setThreadPolicy(policy);
@@ -427,8 +426,32 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             /*nodeIndex = -1;
             mBtnPre.setVisibility(View.VISIBLE);
             mBtnNext.setVisibility(View.VISIBLE);*/
-        	findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
-        	findViewById(R.id.btn_plan).setVisibility(View.GONE);
+        	final Button reqNaviBtn = (Button)findViewById(R.id.btn_plan);
+        	reqNaviBtn.setText("navi");
+        	final OnClickListener btnNaviClickListener = new OnClickListener() {
+
+    			@Override
+    			public void onClick(View v) {
+    				// TODO Auto-generated method stub
+    				Log.e("mylog", "mCurrentLantitude="+mCurrentLantitude+" mCurrentLongtitude="+mCurrentLongitude);
+    				Log.e("mylog", "mMarkerLan="+mMarkerDest.getPosition().latitude+" mMarkerLong="+mMarkerDest.getPosition().longitude);
+    				BNRoutePlanNode stNode = new BNRoutePlanNode(mCurrentLongitude, mCurrentLantitude, "start", null,CoordinateType.GCJ02);
+            		BNRoutePlanNode enNode = new BNRoutePlanNode(mMarkerDest.getPosition().longitude,mMarkerDest.getPosition().latitude,"end",null,CoordinateType.GCJ02);
+    				//BNRoutePlanNode stNode = new BNRoutePlanNode(116.201427, 23.050877, 
+    			    //		"百度大厦", null, CoordinateType.GCJ02);
+    				//BNRoutePlanNode enNode = new BNRoutePlanNode(116.397507, 23.798827, 
+    			    //		"北京天安门", null, CoordinateType.GCJ02);
+            		List<BNRoutePlanNode> list = new ArrayList<BNRoutePlanNode>();
+        			list.add(stNode);
+        			list.add(enNode);
+        			Log.e("mylog", "before entering navi activity");
+        			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
+        					new DemoRoutePlanListener(stNode));
+    			}        	
+            };
+        	reqNaviBtn.setOnClickListener(btnNaviClickListener);
+        	//findViewById(R.id.btn_navi).setVisibility(View.VISIBLE);
+        	//findViewById(R.id.btn_plan).setVisibility(View.GONE);
             route = result.getRouteLines().get(0);
             DrivingRouteOverlay overlay = new MyDrivingRouteOverlay(mBaiduMap);
             routeOverlay = overlay;
