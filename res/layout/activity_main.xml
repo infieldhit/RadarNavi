@@ -10,10 +10,20 @@
     	android:layout_height="fill_parent"
     	android:clickable="true" />
     
-    <ProgressBar android:indeterminate="true"
-            android:layout_width="50dp" android:layout_height="50dp"
-            android:id="@+id/marker_progress" style="?android:attr/progressBarStyle"
-            android:layout_gravity="center_vertical|center_horizontal"/>
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="horizontal"        
+        android:gravity="center_horizontal"
+        android:layout_alignParentTop="true"
+        >
+        
+	    <ProgressBar android:indeterminate="true"
+	            android:layout_width="50dp" android:layout_height="50dp"
+	            android:id="@+id/marker_progress" style="?android:attr/progressBarStyle"
+	            android:layout_gravity="center_vertical|center_horizontal"/>
+	    
+    </LinearLayout>
     
     <LinearLayout
         android:layout_width="fill_parent"
@@ -29,6 +39,7 @@
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
 		    android:layout_marginTop="10dip"
+		    android:layout_marginRight="10dip"
 		    android:text="@string/action_plan" />
 		    <!-- android:layout_alignParentRight="true"
 		    android:layout_alignParentTop="true"
@@ -40,7 +51,8 @@
 		    android:id="@+id/btn_rst"
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
-		    android:layout_marginTop="10dip"	    
+		    android:layout_marginTop="10dip"
+		    android:layout_marginLeft="10dip"    
 		    android:text="@string/action_rst" />
 	    	<!-- android:layout_alignParentRight="true"
 		    android:layout_alignParentTop="true"

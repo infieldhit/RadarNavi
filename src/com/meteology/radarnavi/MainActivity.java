@@ -150,7 +150,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         BitmapDescriptor bdDest = BitmapDescriptorFactory.fromResource(R.drawable.icon_geo);
         //BitmapDescriptor bdCand = BitmapDescriptorFactory.fromResource(R.drawable.icon_geo);
         
-        LatLng llDest = new LatLng(39.963175, 116.400244);
+        LatLng llDest = new LatLng(29.293, 113.088);
         //LatLng llCand = new LatLng(39.942821, 116.369199);
         
         OverlayOptions ooDest = new MarkerOptions().position(llDest).icon(bdDest).zIndex(5).draggable(true);
@@ -161,11 +161,14 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	    // add ground overlay
         //BitmapDescriptor bdGround = BitmapDescriptorFactory
     	//		.fromResource(R.drawable.ground_overlay);
-        BitmapDescriptor bdRadar = BitmapDescriptorFactory.fromPath(mSDCardPath+"/"+APP_FOLDER_NAME+"/radar.dat");
+        //BitmapDescriptor bdRadar = BitmapDescriptorFactory.fromPath(mSDCardPath+"/"+APP_FOLDER_NAME+"/radar.dat");
+        BitmapDescriptor bdRadar = BitmapDescriptorFactory.fromResource(R.drawable.radar);
 	    //LatLng southwest = new LatLng(38.92235, 115.380338);
 	    //LatLng northeast = new LatLng(40.947246, 117.414977);
-        LatLng southwest = new LatLng(31.40404,110.6146);
-	    LatLng northeast = new LatLng(26.0789,117.0162);
+        //LatLng southwest = new LatLng(31.40404,110.6146);
+	    //LatLng northeast = new LatLng(26.0789,117.0162);
+        LatLng northeast = new LatLng(31.40404,117.0162);
+        LatLng southwest = new LatLng(26.0789,110.6146);
 	    LatLngBounds bounds = new LatLngBounds.Builder().include(northeast)
 	    		.include(southwest).build();
 	    OverlayOptions ooGround = new GroundOverlayOptions()
@@ -217,6 +220,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 				PlanNode stNode = PlanNode.withLocation(new LatLng(mCurrentLantitude, mCurrentLongitude));
         		PlanNode enNode = PlanNode.withLocation(mMarkerDest.getPosition());
         		mSearch.drivingSearch((new DrivingRoutePlanOption()).from(stNode).to(enNode));
+        		findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
 			}
         };
         reqPlanBtn.setOnClickListener(btnPlanClickListener);
@@ -414,6 +418,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	@Override
 	public void onGetDrivingRouteResult(DrivingRouteResult result) {
 		// TODO Auto-generated method stub
+		findViewById(R.id.marker_progress).setVisibility(View.GONE);
         if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
             Toast.makeText(MainActivity.this, "±§Ç¸£¬Î´ÕÒµ½½á¹û", Toast.LENGTH_SHORT).show();
         }
@@ -445,6 +450,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         			list.add(stNode);
         			list.add(enNode);
         			Log.e("mylog", "before entering navi activity");
+        			findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
         			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
         					new DemoRoutePlanListener(stNode));
     			}        	
@@ -576,6 +582,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		@Override
 		public void onJumpToNavigator() {
 			Log.e("mylog", "try to enter guide act");
+			findViewById(R.id.marker_progress).setVisibility(View.GONE);
 			Intent intent = new Intent(MainActivity.this,
 					NaviGuideActivity.class);
 			Bundle bundle = new Bundle();
@@ -589,6 +596,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		public void onRoutePlanFailed() {
 			// TODO Auto-generated method stub
 			Log.e("mylog", "route plan failed");
+			findViewById(R.id.marker_progress).setVisibility(View.GONE);
 		}
 	}
 	
