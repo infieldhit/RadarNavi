@@ -139,7 +139,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         	initNavi();
         }
 		
-		findViewById(R.id.marker_progress).setVisibility(View.GONE);
+		findViewById(R.id.loading).setVisibility(View.GONE);
 		//findViewById(R.id.btn_navi).setVisibility(View.GONE);
 		//findViewById(R.id.btn_plan).setVisibility(View.GONE);
 		
@@ -220,7 +220,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 				PlanNode stNode = PlanNode.withLocation(new LatLng(mCurrentLantitude, mCurrentLongitude));
         		PlanNode enNode = PlanNode.withLocation(mMarkerDest.getPosition());
         		mSearch.drivingSearch((new DrivingRoutePlanOption()).from(stNode).to(enNode));
-        		findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
+        		findViewById(R.id.loading).setVisibility(View.VISIBLE);
 			}
         };
         reqPlanBtn.setOnClickListener(btnPlanClickListener);
@@ -277,7 +277,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_syncdata) {        	
-        	findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
+        	findViewById(R.id.loading).setVisibility(View.VISIBLE);
         	FTPClient ftp = new FTPClient();
         	try
         	{
@@ -327,7 +327,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	                }
         		}
         	}
-        	findViewById(R.id.marker_progress).setVisibility(View.GONE);
+        	findViewById(R.id.loading).setVisibility(View.GONE);
             return true;
         }
         else if (id == R.id.action_settings) {
@@ -418,7 +418,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 	@Override
 	public void onGetDrivingRouteResult(DrivingRouteResult result) {
 		// TODO Auto-generated method stub
-		findViewById(R.id.marker_progress).setVisibility(View.GONE);
+		findViewById(R.id.loading).setVisibility(View.GONE);
         if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
             Toast.makeText(MainActivity.this, "±§Ç¸£¬Î´ÕÒµ½½á¹û", Toast.LENGTH_SHORT).show();
         }
@@ -450,7 +450,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         			list.add(stNode);
         			list.add(enNode);
         			Log.e("mylog", "before entering navi activity");
-        			findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
+        			findViewById(R.id.loading).setVisibility(View.VISIBLE);
         			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
         					new DemoRoutePlanListener(stNode));
     			}        	
@@ -582,7 +582,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		@Override
 		public void onJumpToNavigator() {
 			Log.e("mylog", "try to enter guide act");
-			findViewById(R.id.marker_progress).setVisibility(View.GONE);
+			findViewById(R.id.loading).setVisibility(View.GONE);
 			Intent intent = new Intent(MainActivity.this,
 					NaviGuideActivity.class);
 			Bundle bundle = new Bundle();
@@ -596,7 +596,9 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 		public void onRoutePlanFailed() {
 			// TODO Auto-generated method stub
 			Log.e("mylog", "route plan failed");
-			findViewById(R.id.marker_progress).setVisibility(View.GONE);
+			Toast.makeText(MainActivity.this, "route plan failed. please retry.",
+					Toast.LENGTH_SHORT).show();
+			findViewById(R.id.loading).setVisibility(View.GONE);
 		}
 	}
 	

@@ -8,6 +8,7 @@
     <string name="action_navi">navi</string>
     <string name="action_plan">plan</string>
     <string name="action_rst">reset</string>
+    <string name="action_loading">loading...</string>
     <string name="title_navi_guide">navi guide</string>
 
 </resources>
