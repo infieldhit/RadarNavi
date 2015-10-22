@@ -23,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.meteology.radarnavi.R;
@@ -123,6 +124,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
     OverlayManager routeOverlay = null;
     
     private String mSDCardPath = null;
+    
+    TextView t = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -220,6 +223,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 				PlanNode stNode = PlanNode.withLocation(new LatLng(mCurrentLantitude, mCurrentLongitude));
         		PlanNode enNode = PlanNode.withLocation(mMarkerDest.getPosition());
         		mSearch.drivingSearch((new DrivingRoutePlanOption()).from(stNode).to(enNode));
+        		t = (TextView)findViewById(R.id.load_text);
+        		t.setText("请稍候...");
         		findViewById(R.id.loading).setVisibility(View.VISIBLE);
 			}
         };
@@ -231,7 +236,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				reqPlanBtn.setText("plan");
+				reqPlanBtn.setText("规划");
 				reqPlanBtn.setOnClickListener(btnPlanClickListener);
 				routeOverlay.removeFromMap();
 			}
@@ -276,7 +281,9 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_syncdata) {        	
+        if (id == R.id.action_syncdata) {
+        	t = (TextView)findViewById(R.id.load_text);
+        	t.setText("同步中...");
         	findViewById(R.id.loading).setVisibility(View.VISIBLE);
         	FTPClient ftp = new FTPClient();
         	try
@@ -432,7 +439,7 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
             mBtnPre.setVisibility(View.VISIBLE);
             mBtnNext.setVisibility(View.VISIBLE);*/
         	final Button reqNaviBtn = (Button)findViewById(R.id.btn_plan);
-        	reqNaviBtn.setText("navi");
+        	reqNaviBtn.setText("导航");
         	final OnClickListener btnNaviClickListener = new OnClickListener() {
 
     			@Override
@@ -450,6 +457,8 @@ public class MainActivity extends Activity implements OnGetRoutePlanResultListen
         			list.add(stNode);
         			list.add(enNode);
         			Log.e("mylog", "before entering navi activity");
+        			t = (TextView)findViewById(R.id.load_text);
+        			t.setText("请稍候...");
         			findViewById(R.id.loading).setVisibility(View.VISIBLE);
         			BaiduNaviManager.getInstance().launchNavigator(MainActivity.this, list, 1, true,
         					new DemoRoutePlanListener(stNode));

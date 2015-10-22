@@ -3,11 +3,11 @@
 
     <string name="app_name">RadarNavi</string>
     <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="action_syncdata">Sync Radar Data</string>
-    <string name="action_navi">navi</string>
-    <string name="action_plan">plan</string>
-    <string name="action_rst">reset</string>
+    <string name="action_settings">设置</string>
+    <string name="action_syncdata">同步雷达数据</string>
+    <string name="action_navi">导航</string>
+    <string name="action_plan">规划</string>
+    <string name="action_rst">重置</string>
     <string name="action_loading">loading...</string>
     <string name="title_navi_guide">navi guide</string>
 
